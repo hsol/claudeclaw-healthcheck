@@ -1,23 +1,68 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ClaudeClaw Health Check</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="refresh" content="30">
+  <title>Agent Status</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #0d1117; color: #c9d1d9; }
-    .container { text-align: center; padding: 2rem; }
-    .status { font-size: 3rem; margin-bottom: 1rem; }
-    h1 { color: #58a6ff; }
-    .info { color: #8b949e; margin-top: 1rem; }
+    *{box-sizing:border-box}
+    body{font-family:-apple-system,sans-serif;max-width:500px;margin:48px auto;padding:0 20px;color:#1a1a1a}
+    h1{font-size:1.3em;margin-bottom:24px}
+    .agent{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid #f0f0f0}
+    .agent:last-child{border-bottom:none}
+    .dot{font-size:1.3em}
+    .info{flex:1}
+    .name{font-weight:600;font-size:1em}
+    .time{color:#888;font-size:.85em;margin-top:2px}
+    footer{margin-top:24px;color:#bbb;font-size:.8em}
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="status">OK</div>
-    <h1>ClaudeClaw Health Check</h1>
-    <p>Status: <strong style="color:#3fb950">OK</strong></p>
-    <p class="info">GitHub Pages is running.</p>
-  </div>
+  <h1>Agent Status</h1>
+  <div id="agents"></div>
+  <footer>30초마다 새로고침</footer>
+  <script>
+    const AGENTS = [
+      {id:'firsty',name:'Firsty'},
+      {id:'secondy',name:'Secondy'},
+      {id:'thirdy',name:'Thirdy'}
+    ];
+    const TIMEOUT = 90000;
+
+    async function load(id) {
+      try {
+        const r = await fetch(`status/${id}.json?t=${Date.now()}`);
+        return r.ok ? r.json() : null;
+      } catch { return null; }
+    }
+
+    function ago(iso) {
+      if (!iso) return '응답 없음';
+      const s = Math.floor((Date.now() - new Date(iso)) / 1000);
+      if (s < 60) return s + '초 전';
+      const m = Math.floor(s/60);
+      if (m < 60) return m + '분 전';
+      return Math.floor(m/60) + '시간 전';
+    }
+
+    async function render() {
+      const all = await Promise.all(AGENTS.map(a => load(a.id)));
+      document.getElementById('agents').innerHTML = AGENTS.map((a, i) => {
+        const d = all[i];
+        const online = d?.last_seen && (Date.now() - new Date(d.last_seen)) < TIMEOUT;
+        return `<div class="agent">
+          <span class="dot">${online ? '🟢' : '🔴'}</span>
+          <div class="info">
+            <div class="name">${a.name}</div>
+            <div class="time">${ago(d?.last_seen)}</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    render();
+    setInterval(render, 30000);
+  </script>
 </body>
 </html>
